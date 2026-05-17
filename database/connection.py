@@ -8,13 +8,15 @@ from .models.bench_status import BenchActivity, BenchUtilization
 from .models.project_opportunity import ProjectOpportunity, ConsultantProjectMatch
 
 # Database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/consultant_bench_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///consultant_bench_db.sqlite")
 
 # Create engine
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    echo=os.getenv("DEBUG", "false").lower() == "true"
+    echo=os.getenv("DEBUG", "false").lower() == "true",
+    connect_args=connect_args
 )
 
 # Create session maker
@@ -26,11 +28,13 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
 
 # ADD THIS MISSING FUNCTION
+from sqlalchemy import text
+
 def test_connection():
     """Test database connection"""
     try:
         connection = engine.connect()
-        result = connection.execute("SELECT 1;")
+        result = connection.execute(text("SELECT 1;"))
         connection.close()
         print("Database connection successful!")
         return True

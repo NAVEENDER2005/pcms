@@ -37,5 +37,5 @@ class Consultant(Base):
     
     # Relationships
     bench_activities = relationship("BenchActivity", back_populates="consultant")
-    resume_data = relationship("ResumeData", back_populates="consultant")
-    skills = relationship("ConsultantSkill", back_populates="consultant")
+    # resume_data = relationship("ResumeData", back_populates="consultant")
+    # skills = relationship("ConsultantSkill", back_populates="consultant")

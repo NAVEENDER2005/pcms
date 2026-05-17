@@ -6,7 +6,7 @@ anyio>=3.7.1,<4.0.0
 
 # Database
 sqlalchemy>=2.0.0,<2.1.0
-psycopg2-binary>=2.9.0
+pg8000>=1.31.0
 alembic>=1.13.0
 
 # ML/AI Dependencies (CPU versions for stability)

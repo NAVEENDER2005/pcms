@@ -1,8 +1,6 @@
 import asyncio
 import json
-import numpy as np
 from typing import Dict, Any, List, Optional
-from sklearn.metrics.pairwise import cosine_similarity
 from sqlalchemy.orm import Session
 from database.connection import SessionLocal
 from database.models.consultant import Consultant

@@ -24,8 +24,9 @@ from database.models.professional_models import (
 logger = logging.getLogger(__name__)
 
 # Database setup - PostgreSQL configuration
-DATABASE_URL = "postgresql://postgres:2005@localhost:5432/consultant_bench_db"
-engine = create_engine(DATABASE_URL, echo=False)
+DATABASE_URL = "sqlite:///consultant_bench_db.sqlite"
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_database_url():
@@ -36,10 +37,10 @@ def init_database():
     """Initialize database tables"""
     try:
         Base.metadata.create_all(bind=engine)
-        print("✅ Professional database initialized successfully")
+        print("SUCCESS: Professional database initialized successfully")
         return True
     except Exception as e:
-        print(f"❌ Error initializing database: {e}")
+        print(f"ERROR: Error initializing database: {e}")
         return False
 
 def get_db():
@@ -57,10 +58,10 @@ def test_connection():
         db = SessionLocal()
         db.execute("SELECT 1")
         db.close()
-        print("✅ Database connection successful")
+        print("SUCCESS: Database connection successful")
         return True
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f"ERROR: Database connection failed: {e}")
         return False
 
 class ProfessionalDatabase:
@@ -74,9 +75,9 @@ class ProfessionalDatabase:
             # Test database connection
             test_session = self.SessionLocal()
             test_session.close()
-            print("✅ Database connection established successfully")
+            print("SUCCESS: Database connection established successfully")
         except Exception as e:
-            print(f"⚠️ Database connection issue: {e}")
+            print(f"WARNING: Database connection issue: {e}")
             self.engine = None
             self.SessionLocal = None
     

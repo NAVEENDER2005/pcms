@@ -24,7 +24,7 @@ export function LoginForm() {
 
     const success = await login(email, password);
     if (!success) {
-      setError('Invalid credentials. Use kisshore@company.com or hari@company.com with password123');
+      setError('Invalid credentials. Use consultant@benchsync.com or admin@benchsync.com with password123');
     }
   };
 
@@ -92,11 +92,11 @@ export function LoginForm() {
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-muted rounded-md">
-            <p className="text-sm font-medium text-foreground mb-2">Demo Credentials:</p>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>Consultant:</strong> kisshore@company.com</p>
-              <p><strong>Admin:</strong> hari@company.com</p>
+          <div className="mt-6 bg-slate-50 p-4 rounded-md text-sm text-slate-600">
+            <h4 className="font-medium mb-2">Demo Credentials:</h4>
+            <div className="space-y-1">
+              <p><strong>Consultant:</strong> consultant@benchsync.com</p>
+              <p><strong>Admin:</strong> admin@benchsync.com</p>
               <p><strong>Password:</strong> password123</p>
             </div>
           </div>

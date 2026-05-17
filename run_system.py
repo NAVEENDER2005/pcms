@@ -67,8 +67,8 @@ def install_dependencies():
     essential_packages = [
         "python-dotenv",
         "numpy>=1.24.0",
-        "sqlalchemy==2.0.23", 
-        "psycopg2-binary==2.9.9",
+        "sqlalchemy>=2.0.30",
+        "pg8000>=1.31.0",
         "fastapi==0.104.1",
         "uvicorn==0.24.0",
         "pydantic>=2.5.0",
