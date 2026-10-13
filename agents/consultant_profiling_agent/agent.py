@@ -175,6 +175,12 @@ class ConsultantProfilingAgent:
         text = re.sub(r'[^a-z0-9\s\+\-\#\.\\/]', '', text)
         text = re.sub(r'\s+', ' ', text).strip()
         return text
+
+    def extract_consultant_information(self, text: str) -> Dict[str, Any]:
+        """Extract consultant information using ML or fallback methods"""
+        if self.has_ml_models:
+            return self.extract_consultant_information_ml(text)
+        return self.extract_consultant_information_fallback(text)
     
     def extract_consultant_information_ml(self, text: str) -> Dict[str, List[str]]:
         """Extract skills using ML models"""

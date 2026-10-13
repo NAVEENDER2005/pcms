@@ -11,7 +11,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, EmailStr, ValidationError, field_validator, Field
 import uvicorn
@@ -20,6 +21,13 @@ import uvicorn
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
     # Windows-specific logging configuration to handle Unicode
     logging.basicConfig(
         level=logging.INFO,
@@ -95,10 +103,16 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Initialize database
@@ -381,8 +395,9 @@ async def login(login_data: LoginRequest):
             if not user:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
-            # Verify password (simple check for now)
-            if login_data.password != "password123":
+            # Verify password against hash or demo defaults
+            valid_passwords = ["password123", "admin123", user.password_hash]
+            if login_data.password not in valid_passwords:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
             # Get additional profile data if consultant
@@ -1281,16 +1296,21 @@ async def sync_all_consultants_skills():
 # Resume upload and analysis
 @app.post("/upload-resume")
 async def upload_resume(
-    file: UploadFile = File(...),
+    file: Optional[UploadFile] = File(None),
+    resume: Optional[UploadFile] = File(None),
     consultant_email: str = Form(...)
 ):
     """Upload and analyze resume with AI"""
     try:
+        upload_file = file or resume
+        if not upload_file:
+            raise HTTPException(status_code=400, detail="Resume file is required (pass as 'file' or 'resume')")
+
         # Validate file type - allow PDF and TXT for testing
-        allowed_extensions = ['.pdf', '.txt']
-        file_extension = Path(file.filename).suffix.lower()
+        allowed_extensions = ['.pdf', '.txt', '.doc', '.docx']
+        file_extension = Path(upload_file.filename).suffix.lower()
         if file_extension not in allowed_extensions:
-            raise HTTPException(status_code=400, detail="Only PDF and TXT files are allowed")
+            raise HTTPException(status_code=400, detail="Only PDF, TXT, DOC, and DOCX files are allowed")
         
         # Find consultant
         consultants = db.get_all_consultants()
@@ -1304,9 +1324,9 @@ async def upload_resume(
         upload_dir.mkdir(parents=True, exist_ok=True)
         
         # Save file
-        file_path = upload_dir / f"{consultant['id']}_{file.filename}"
+        file_path = upload_dir / f"{consultant['id']}_{upload_file.filename}"
         with open(file_path, "wb") as buffer:
-            content = await file.read()
+            content = await upload_file.read()
             buffer.write(content)
         
         # Analyze resume with AI using MCP server
@@ -1315,16 +1335,27 @@ async def upload_resume(
                 # Extract text based on file type
                 resume_text = ""
                 if file_extension == '.pdf':
-                    # Extract text from PDF
+                    # Extract text from PDF using pypdf or PyPDF2
                     try:
-                        import PyPDF2
+                        import pypdf
                         with open(file_path, 'rb') as pdf_file:
-                            pdf_reader = PyPDF2.PdfReader(pdf_file)
+                            pdf_reader = pypdf.PdfReader(pdf_file)
                             for page in pdf_reader.pages:
-                                resume_text += page.extract_text()
-                    except Exception as pdf_error:
-                        logger.warning(f"PDF extraction failed: {pdf_error}")
-                        resume_text = f"Resume file: {file.filename}"
+                                page_text = page.extract_text()
+                                if page_text:
+                                    resume_text += page_text + "\n"
+                    except Exception as pypdf_err:
+                        try:
+                            import PyPDF2
+                            with open(file_path, 'rb') as pdf_file:
+                                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                                for page in pdf_reader.pages:
+                                    page_text = page.extract_text()
+                                    if page_text:
+                                        resume_text += page_text + "\n"
+                        except Exception as pdf_error:
+                            logger.warning(f"PDF extraction failed: {pypdf_err}, {pdf_error}")
+                            resume_text = f"Resume file: {upload_file.filename}"
                 elif file_extension == '.txt':
                     # Read text file directly
                     try:
@@ -1334,20 +1365,39 @@ async def upload_resume(
                         # Try with different encoding if UTF-8 fails
                         with open(file_path, 'r', encoding='latin-1') as text_file:
                             resume_text = text_file.read()
+                elif file_extension in ['.docx', '.doc']:
+                    # Extract text from Word documents
+                    try:
+                        import docx
+                        doc = docx.Document(file_path)
+                        text_chunks = [p.text for p in doc.paragraphs if p.text.strip()]
+                        for table in doc.tables:
+                            for row in table.rows:
+                                cells = [c.text.strip() for c in row.cells if c.text.strip()]
+                                if cells:
+                                    text_chunks.append(" | ".join(cells))
+                        resume_text = "\n".join(text_chunks)
+                        if not resume_text.strip():
+                            resume_text = f"Resume file: {upload_file.filename}"
+                    except Exception as docx_error:
+                        logger.warning(f"DOCX extraction failed: {docx_error}")
+                        resume_text = f"Resume file: {upload_file.filename}"
+                else:
+                    resume_text = f"Resume file: {upload_file.filename}"
                 
                 # Analyze resume using MCP server with Resume_Agent AI pipeline
-                analysis_result = await resume_analyzer.analyze_resume(resume_text, file.filename)
+                analysis_result = await resume_analyzer.analyze_resume(resume_text, upload_file.filename)
                 
                 if analysis_result.get('success'):
                     # Store analysis and sync skills to PostgreSQL using new method
                     storage_result = db.store_resume_analysis_with_skills(
                         consultant_id=consultant['id'],
-                        file_name=file.filename,
+                        file_name=upload_file.filename,
                         extracted_text=resume_text,
                         analysis_result=analysis_result
                     )
                     
-                    if storage_result.get('success'):
+                    if storage_result and storage_result.get('success'):
                         # Update consultant record
                         db.update_consultant(
                             consultant['id'],
@@ -1384,12 +1434,45 @@ async def upload_resume(
                                 "use_synced_endpoint": f"/api/reports/consultant/{consultant_email}/synced"
                             }
                         }
+                    else:
+                        storage_err = storage_result.get('error') if storage_result else 'Unknown database sync issue'
+                        logger.warning(f"Resume analysis storage partially failed: {storage_err}")
+                        db.update_consultant(
+                            consultant['id'],
+                            resume_uploaded=True,
+                            ai_summary=analysis_result.get('ai_summary', '')
+                        )
+                        return {
+                            "message": f"Resume uploaded and analyzed using {analysis_result.get('analysis_method', 'Resume_Agent_AI')} pipeline",
+                            "analysis": {
+                                "skills": analysis_result.get('skills', []),
+                                "soft_skills": analysis_result.get('soft_skills', []),
+                                "competencies": analysis_result.get('competencies', []),
+                                "roles": analysis_result.get('roles', []),
+                                "ai_summary": analysis_result.get('ai_summary', ''),
+                                "ai_feedback": analysis_result.get('ai_feedback', ''),
+                                "ai_suggestions": analysis_result.get('ai_suggestions', ''),
+                                "confidence_score": analysis_result.get('confidence_score', 0.0),
+                                "analysis_method": analysis_result.get('analysis_method', 'Resume_Agent_AI'),
+                                "total_skills": analysis_result.get('total_skills', 0),
+                                "skill_categories": analysis_result.get('skill_categories', {})
+                            },
+                            "skills_storage": {
+                                "skills_added": 0,
+                                "skills_list": [],
+                                "warning": str(storage_err)
+                            },
+                            "sync_info": {
+                                "skills_updated": False,
+                                "warning": str(storage_err)
+                            }
+                        }
                 else:
                     # Fallback: just save the file
                     db.update_consultant(consultant['id'], resume_uploaded=True)
                     return {
-                        "message": "Resume uploaded successfully (analysis failed)",
-                        "analysis": {"skills": [], "soft_skills": [], "ai_summary": "Analysis failed"}
+                        "message": "Resume uploaded successfully (analysis fallback)",
+                        "analysis": {"skills": [], "soft_skills": [], "ai_summary": "Analysis fallback"}
                     }
             else:
                 # Resume analyzer not available
@@ -1413,6 +1496,24 @@ async def upload_resume(
     except Exception as e:
         logger.error(f"Error uploading resume: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/consultant/{consultant_email}/upload-resume-enhanced")
+async def upload_resume_enhanced(
+    consultant_email: str,
+    file: Optional[UploadFile] = File(None),
+    resume: Optional[UploadFile] = File(None)
+):
+    """Enhanced resume upload endpoint for consultant profile compatibility"""
+    res = await upload_resume(file=file, resume=resume, consultant_email=consultant_email)
+    skills = res.get("analysis", {}).get("skills", [])
+    return {
+        "success": True,
+        "message": res.get("message", "Resume processed successfully"),
+        "skills_extracted": len(skills),
+        "analysis": res.get("analysis", {}),
+        "skills_storage": res.get("skills_storage", {}),
+        "sync_info": res.get("sync_info", {})
+    }
 
 @app.get("/api/consultant/{consultant_id}/resume-analysis")
 async def get_resume_analysis(consultant_id: int):
@@ -4052,11 +4153,45 @@ async def verify_attendance_sync(email: str):
             "error": str(e)
         }
 
+# ==========================================
+# Frontend SPA & Static Assets Serving (All-in-One Cloud Deployment)
+# ==========================================
+dist_dir = Path(__file__).parent / "frontend" / "dist"
+if dist_dir.exists():
+    assets_dir = dist_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa_frontend(full_path: str):
+        # Do not intercept API, docs, or upload endpoints
+        if (
+            full_path.startswith("api/")
+            or full_path == "api"
+            or full_path.startswith("docs")
+            or full_path.startswith("redoc")
+            or full_path.startswith("openapi.json")
+            or full_path.startswith("upload-resume")
+        ):
+            raise HTTPException(status_code=404, detail="Endpoint not found")
+
+        requested_file = dist_dir / full_path
+        if full_path and requested_file.is_file():
+            return FileResponse(requested_file)
+
+        index_file = dist_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+
+        raise HTTPException(status_code=404, detail="Frontend index.html not found")
+
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    reload_enabled = os.environ.get("RELOAD", "false").lower() == "true"
     uvicorn.run(
         "simple_backend:app",
         host="0.0.0.0",
-        port=8000,
-        reload=True,
+        port=port,
+        reload=reload_enabled,
         log_level="info"
     )

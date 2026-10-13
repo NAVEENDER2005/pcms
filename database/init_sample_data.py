@@ -8,6 +8,11 @@ import os
 from pathlib import Path
 from sqlalchemy import text
 
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -70,6 +75,56 @@ def create_sample_users_and_consultants():
         
         # Sample consultant data with diverse skills
         sample_data = [
+            {
+                "user": {
+                    "id": "consultant_benchsync_000",
+                    "name": "Kisshore Kumar",
+                    "email": "consultant@benchsync.com",
+                    "password_hash": "password123",
+                    "role": "consultant",
+                    "department": "Engineering"
+                },
+                "profile": {
+                    "primary_skill": "Full Stack & Cloud Architecture",
+                    "experience_years": 5,
+                    "bench_start_date": "2024-01-10",
+                    "current_status": "available"
+                },
+                "skills": [
+                    {"name": "React", "category": "Frontend", "proficiency": "expert", "years": 5},
+                    {"name": "TypeScript", "category": "Programming", "proficiency": "expert", "years": 4},
+                    {"name": "Node.js", "category": "Backend", "proficiency": "expert", "years": 5},
+                    {"name": "Python", "category": "Programming", "proficiency": "advanced", "years": 4},
+                    {"name": "AWS", "category": "Cloud", "proficiency": "advanced", "years": 3},
+                    {"name": "Docker", "category": "DevOps", "proficiency": "advanced", "years": 3},
+                    {"name": "PostgreSQL", "category": "Database", "proficiency": "advanced", "years": 4}
+                ]
+            },
+            {
+                "user": {
+                    "id": "kisshore_company_000",
+                    "name": "Kisshore Kumar",
+                    "email": "kisshore@company.com",
+                    "password_hash": "password123",
+                    "role": "consultant",
+                    "department": "Engineering"
+                },
+                "profile": {
+                    "primary_skill": "Full Stack & Cloud Architecture",
+                    "experience_years": 5,
+                    "bench_start_date": "2024-01-10",
+                    "current_status": "available"
+                },
+                "skills": [
+                    {"name": "React", "category": "Frontend", "proficiency": "expert", "years": 5},
+                    {"name": "TypeScript", "category": "Programming", "proficiency": "expert", "years": 4},
+                    {"name": "Node.js", "category": "Backend", "proficiency": "expert", "years": 5},
+                    {"name": "Python", "category": "Programming", "proficiency": "advanced", "years": 4},
+                    {"name": "AWS", "category": "Cloud", "proficiency": "advanced", "years": 3},
+                    {"name": "Docker", "category": "DevOps", "proficiency": "advanced", "years": 3},
+                    {"name": "PostgreSQL", "category": "Database", "proficiency": "advanced", "years": 4}
+                ]
+            },
             {
                 "user": {
                     "id": "john_doe_001",
@@ -209,6 +264,22 @@ def create_sample_users_and_consultants():
         # Admin users
         admin_data = [
             {
+                "id": "admin_benchsync_000",
+                "name": "Admin User",
+                "email": "admin@benchsync.com",
+                "password_hash": "password123",
+                "role": "admin",
+                "department": "Administration"
+            },
+            {
+                "id": "admin_hari_000",
+                "name": "Hari Admin",
+                "email": "hari@company.com",
+                "password_hash": "password123",
+                "role": "admin",
+                "department": "Administration"
+            },
+            {
                 "id": "admin_001",
                 "name": "Admin User",
                 "email": "admin@company.com",
@@ -331,6 +402,9 @@ def create_sample_users_and_consultants():
         ]
         
         for opp_data in opportunities:
+            # Set company if not present (required by ProjectOpportunity model)
+            if "company" not in opp_data:
+                opp_data["company"] = opp_data.get("client_name", "Tech Corp")
             # Convert required_skills to JSON string
             opp_data["required_skills"] = json.dumps(opp_data["required_skills"])
             opportunity = ProjectOpportunity(**opp_data)
@@ -381,6 +455,8 @@ def create_sample_users_and_consultants():
 🔐 LOGIN CREDENTIALS:
 
 📋 CONSULTANTS:
+   • consultant@benchsync.com / password123 (Default UI demo account)
+   • kisshore@company.com / password123 (Kisshore Kumar - Full Stack & Cloud)
    • john.doe@company.com / password123 (Full Stack - React, Node.js, Python)
    • jane.smith@company.com / password123 (Data Science - ML, Python, TensorFlow)
    • mike.johnson@company.com / password123 (DevOps - AWS, Docker, Kubernetes)
@@ -388,6 +464,8 @@ def create_sample_users_and_consultants():
    • david.brown@company.com / password123 (Backend - Java, Spring Boot, PostgreSQL)
 
 👑 ADMINS:
+   • admin@benchsync.com / password123 (Default UI demo account)
+   • hari@company.com / password123
    • admin@company.com / admin123
    • hr.manager@company.com / hr123
 

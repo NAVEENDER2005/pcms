@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
@@ -23,6 +23,7 @@ interface NavigationProps {
 export function Navigation({ isOpen, setIsOpen }: NavigationProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navigationItems = [
   { 
@@ -159,18 +160,18 @@ export function Navigation({ isOpen, setIsOpen }: NavigationProps) {
 
           {/* Logout button */}
           <div className="p-4 border-t border-border">
-           <Button
-  variant="outline"
-  className="w-full justify-start"
-  onClick={() => {
-    logout();
-    window.location.href = "http://localhost:8080";
-  }}
-  aria-label="Sign out of application"
->
-  <LogOut className="h-4 w-4 mr-2" aria-hidden="true" />
-  Logout
-</Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={async () => {
+                await logout();
+                navigate('/', { replace: true });
+              }}
+              aria-label="Sign out of application"
+            >
+              <LogOut className="h-4 w-4 mr-2" aria-hidden="true" />
+              Logout
+            </Button>
           </div>
         </div>
       </nav>

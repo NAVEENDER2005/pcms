@@ -17,10 +17,9 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { API_BASE_URL } from '@/config/api';
 
-// Backend API base URL
-const API_BASE_URL = 'http://localhost:8000';
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

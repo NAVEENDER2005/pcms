@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Search, Filter, Users, TrendingUp, Clock, DollarSign, Brain } from 'lucide-react';
+import { API_BASE_URL } from '@/config/api';
 
 interface Application {
   id: string;
@@ -107,7 +107,7 @@ const AdminOpportunities = () => {
         params.append('status', statusFilter);
       }
       
-      const response = await fetch(`http://localhost:8000/api/opportunities-with-applications?${params}`);
+      const response = await fetch(`${API_BASE_URL}/api/opportunities-with-applications?${params}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -124,7 +124,7 @@ const AdminOpportunities = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/opportunity-analytics');
+      const response = await fetch(`${API_BASE_URL}/api/opportunity-analytics`);
       const data = await response.json();
       
       if (response.ok) {
@@ -159,7 +159,7 @@ const AdminOpportunities = () => {
 
       console.log('Sending opportunity data:', opportunityData); // Debug log
 
-      const response = await fetch('http://localhost:8000/api/opportunities', {
+      const response = await fetch(`${API_BASE_URL}/api/opportunities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -243,7 +243,7 @@ const AdminOpportunities = () => {
 
   const handleApplicationAction = async (applicationId, action) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/opportunity-applications/${applicationId}/${action}`, {
+      const response = await fetch(`${API_BASE_URL}/api/opportunity-applications/${applicationId}/${action}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -17,8 +17,7 @@ import {
   Award
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
-const API_BASE = 'http://localhost:8000';
+import { API_BASE_URL as API_BASE } from '@/config/api';
 
 // Types for the reporting system
 interface ConsultantReport {

@@ -5,11 +5,39 @@ PostgreSQL database connection for consultant management system
 """
 import sys
 import os
+import json
 import logging
+
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 from pathlib import Path
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+def parse_skills_list(skills):
+    """Safely parse required_skills from string or list format"""
+    if not skills:
+        return []
+    if isinstance(skills, list):
+        return skills
+    if isinstance(skills, str):
+        try:
+            parsed = json.loads(skills)
+            if isinstance(parsed, list):
+                return parsed
+        except Exception:
+            pass
+        return [s.strip() for s in skills.split(',') if s.strip()]
+    return []
+
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent
@@ -498,7 +526,10 @@ class ProfessionalDatabase:
                                     existing_skill.updated_at = datetime.now()
                     
                     session.commit()
-                    print(f"✅ Added {len(added_skills)} skills from {source} for consultant {consultant_id}")
+                    try:
+                        logger.info(f"Added {len(added_skills)} skills from {source} for consultant {consultant_id}")
+                    except Exception:
+                        pass
                     return added_skills
                     
                 finally:
@@ -732,7 +763,7 @@ class ProfessionalDatabase:
                         'company': opp.company,
                         'client_name': opp.client_name or opp.company,
                         'description': opp.description,
-                        'required_skills': opp.required_skills or [],
+                        'required_skills': parse_skills_list(opp.required_skills),
                         'experience_required': opp.experience_required,
                         'experience_level': opp.experience_level,
                         'location': opp.location,
@@ -758,7 +789,7 @@ class ProfessionalDatabase:
                             'company': opp.company,
                             'client_name': opp.client_name or opp.company,
                             'description': opp.description,
-                            'required_skills': opp.required_skills or [],
+                            'required_skills': parse_skills_list(opp.required_skills),
                             'experience_required': opp.experience_required,
                             'experience_level': opp.experience_level,
                             'location': opp.location,
@@ -1137,7 +1168,7 @@ class ProfessionalDatabase:
             match_score = 80  # Default score
             if opportunity and opportunity.required_skills:
                 skill_names = [skill['skill_name'].lower() for skill in consultant_skills]
-                required_skills = opportunity.required_skills
+                required_skills = parse_skills_list(opportunity.required_skills)
                 matched_count = sum(1 for req_skill in required_skills 
                                   if any(req_skill.lower() == skill.lower() for skill in skill_names))
                 match_score = (matched_count / len(required_skills)) * 100 if required_skills else 80

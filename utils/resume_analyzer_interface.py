@@ -8,6 +8,7 @@ import json
 import subprocess
 import logging
 import os
+import sys
 import tempfile
 import re
 from typing import Dict, Any, Optional, List
@@ -23,7 +24,7 @@ class ResumeAnalyzerMCPClient:
             "mcp_servers", 
             "professional_resume_analyzer_server.py"
         )
-        self.python_path = "C:/Users/Sanjay N/anaconda3/python.exe"  # Use Anaconda Python
+        self.python_path = sys.executable or "python"
     
     async def analyze_resume(self, resume_text: str, filename: str = "resume.txt") -> Dict[str, Any]:
         """Analyze resume using MCP server"""

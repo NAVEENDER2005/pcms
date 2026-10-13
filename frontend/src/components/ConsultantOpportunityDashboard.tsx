@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Star, Clock, DollarSign, Brain, FileText, TrendingUp, CheckCircle, XCircle, Briefcase } from 'lucide-react';
+import { API_BASE_URL } from '@/config/api';
 
 interface Opportunity {
   id: number;
@@ -72,7 +72,7 @@ const ConsultantOpportunityDashboard = ({ consultantEmail }: { consultantEmail: 
   const fetchConsultantOpportunities = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/consultant-opportunities/${consultantEmail}`);
+      const response = await fetch(`${API_BASE_URL}/api/consultant-opportunities/${consultantEmail}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -111,7 +111,7 @@ const ConsultantOpportunityDashboard = ({ consultantEmail }: { consultantEmail: 
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:8000/api/opportunities/${opportunityId}/apply`, {
+      const response = await fetch(`${API_BASE_URL}/api/opportunities/${opportunityId}/apply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

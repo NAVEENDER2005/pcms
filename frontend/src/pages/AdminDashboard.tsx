@@ -19,8 +19,7 @@ import { ConsultantFilter } from "@/components/Admin/ConsultantFilter";
 import { ConsultantTable } from "@/components/Admin/ConsultantTable";
 import { AIAgentQueue } from "@/components/Admin/AIAgentQueue";
 
-// API configuration
-const API_BASE_URL = 'http://localhost:8000';
+import { API_BASE_URL } from '@/config/api';
 
 interface AttendanceRecord {
   date: string;

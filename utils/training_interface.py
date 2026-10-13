@@ -8,6 +8,7 @@ import json
 import subprocess
 import logging
 import os
+import sys
 import tempfile
 from typing import Dict, List, Any, Optional
 from datetime import datetime
@@ -27,7 +28,7 @@ class TrainingMCPClient:
             "mcp_servers", 
             "professional_training_server.py"
         )
-        self.python_path = "C:/Users/Sanjay N/anaconda3/python.exe"  # Use Anaconda Python
+        self.python_path = sys.executable or "python"
         logger.info("Training MCP Client initialized")
     
     async def _communicate_with_server(self, request: Dict) -> Dict:

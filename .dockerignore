@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.env.local
+node_modules/
+.git/
+.gitignore
+.vscode/
+.idea/
+logs/*.log
+*.sqlite
+frontend/node_modules/

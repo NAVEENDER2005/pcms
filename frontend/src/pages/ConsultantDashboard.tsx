@@ -19,8 +19,7 @@ import {
   Target
 } from 'lucide-react';
 
-// API configuration
-const API_BASE_URL = 'http://localhost:8000';
+import { API_BASE_URL } from '@/config/api';
 
 // Types
 interface SkillsAnalysisData {
@@ -299,11 +298,11 @@ export default function ConsultantDashboard() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Allow both PDF and TXT files for testing
-    const allowedExtensions = ['.pdf', '.txt'];
+    // Allow PDF, TXT, DOC, DOCX files
+    const allowedExtensions = ['.pdf', '.txt', '.doc', '.docx'];
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
     if (!allowedExtensions.includes(fileExtension)) {
-      setUploadMessage('Please upload a PDF or TXT file only.');
+      setUploadMessage('Please upload a PDF, TXT, or DOCX file.');
       return;
     }
 
@@ -313,6 +312,7 @@ export default function ConsultantDashboard() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('resume', file);
       formData.append('consultant_email', user?.email || '');
 
       const response = await fetch(`${API_BASE_URL}/upload-resume`, {
@@ -323,11 +323,13 @@ export default function ConsultantDashboard() {
       const result = await response.json();
 
       if (response.ok) {
-        setUploadMessage(`✅ Resume uploaded successfully! Analyzed ${result.analysis.skills.length} skills.`);
+        const skillsCount = result?.analysis?.skills?.length ?? 0;
+        setUploadMessage(`✅ Resume uploaded successfully! Analyzed ${skillsCount} skills.`);
         // Refresh consultant data to show updated resume status
         await fetchConsultantData();
       } else {
-        setUploadMessage(`❌ Upload failed: ${result.detail}`);
+        const errorDetail = result?.detail || result?.message || 'Upload failed';
+        setUploadMessage(`❌ Upload failed: ${errorDetail}`);
       }
     } catch (error) {
       setUploadMessage('❌ Upload failed. Please try again.');
@@ -621,12 +623,12 @@ export default function ConsultantDashboard() {
                 htmlFor="resume-upload" 
                 className={`block w-full text-xs py-2 px-3 border border-dashed border-gray-300 rounded-md text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors ${uploadingResume ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {uploadingResume ? 'Uploading...' : 'Upload New Resume (PDF/TXT)'}
+                {uploadingResume ? 'Uploading...' : 'Upload New Resume (PDF/DOCX/TXT)'}
               </label>
               <input
                 id="resume-upload"
                 type="file"
-                accept=".pdf,.txt"
+                accept=".pdf,.txt,.docx,.doc"
                 onChange={handleResumeUpload}
                 disabled={uploadingResume}
                 className="hidden"

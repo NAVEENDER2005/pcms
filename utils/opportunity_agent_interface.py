@@ -28,8 +28,9 @@ class OpportunityAgentMCPClient:
         try:
             # Start server process if not running
             if not self.process or self.process.poll() is not None:
+                python_bin = sys.executable or "python"
                 self.process = subprocess.Popen(
-                    ["C:/Users/Sanjay N/anaconda3/python.exe", self.server_path],
+                    [python_bin, self.server_path],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,

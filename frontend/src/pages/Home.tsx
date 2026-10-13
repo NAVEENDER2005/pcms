@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import UploadResume from '@/components/UploadResume';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +59,7 @@ export default function Home() {
       try {
         if (isConsultant && user?.email) {
           // Fetch consultant data
-          const response = await fetch(`http://localhost:8000/api/consultant/dashboard/${user.email}`);
+          const response = await fetch(`${API_BASE_URL}/api/consultant/dashboard/${user.email}`);
           if (response.ok) {
             const data = await response.json();
             setDashboardData(data);
@@ -67,7 +68,7 @@ export default function Home() {
           }
         } else {
           // Fetch admin metrics
-          const response = await fetch(`http://localhost:8000/api/dashboard/metrics`);
+          const response = await fetch(`${API_BASE_URL}/api/dashboard/metrics`);
           if (response.ok) {
             const data = await response.json();
             setAdminMetrics(data);
@@ -91,7 +92,7 @@ export default function Home() {
     
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/consultant/dashboard/${user.email}`);
+      const response = await fetch(`${API_BASE_URL}/api/consultant/dashboard/${user.email}`);
       if (response.ok) {
         const data = await response.json();
         setDashboardData(data);
