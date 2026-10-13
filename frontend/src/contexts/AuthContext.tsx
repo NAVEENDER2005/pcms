@@ -64,7 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         return true;
       } else {
-        console.error('Login failed:', data.message);
+        const errorMsg = data?.message || data?.detail || 'Invalid email or password';
+        console.error('Login failed:', errorMsg);
         setIsLoading(false);
         return false;
       }

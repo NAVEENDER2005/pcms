@@ -241,12 +241,25 @@ def get_consultant_merged_skills(consultant_id):
             'resume_analysis': None
         }
 
-# Database initialization - PostgreSQL tables are automatically created
+# Database initialization - tables are automatically created
 try:
     # Initialize database tables if needed
     from database.professional_connection import init_database
     init_database()
     logger.info("Database tables initialized")
+
+    # Automatically seed sample users and data if database is empty
+    try:
+        from database.models.professional_models import User
+        session = db.get_session()
+        if session.query(User).count() == 0:
+            logger.info("Database is empty. Automatically initializing demo users & consultants...")
+            from database.init_sample_data import create_sample_users_and_consultants
+            create_sample_users_and_consultants()
+            logger.info("Sample database initialized successfully!")
+        session.close()
+    except Exception as seed_err:
+        logger.warning(f"Auto-seeding check error: {seed_err}")
 except Exception as e:
     logger.error(f"Database initialization error: {e}")
 
@@ -396,6 +409,40 @@ async def login(login_data: LoginRequest):
         try:
             # Find user by email
             user = session.query(User).filter(User.email == login_data.email).first()
+            
+            # If user not found, check if database is empty and auto-seed
+            if not user and session.query(User).count() == 0:
+                try:
+                    from database.init_sample_data import create_sample_users_and_consultants
+                    create_sample_users_and_consultants()
+                    user = session.query(User).filter(User.email == login_data.email).first()
+                except Exception as seed_err:
+                    logger.error(f"On-demand seeding failed: {seed_err}")
+
+            # If still not found, auto-provision default demo accounts on demand
+            if not user and login_data.email in ["consultant@benchsync.com", "admin@benchsync.com"]:
+                is_admin = "admin" in login_data.email
+                role = "admin" if is_admin else "consultant"
+                user = User(
+                    id=f"{role}_benchsync_{uuid.uuid4().hex[:6]}",
+                    name="Admin User" if is_admin else "Kisshore Kumar",
+                    email=login_data.email,
+                    password_hash="password123",
+                    role=role,
+                    department="Administration" if is_admin else "Engineering"
+                )
+                session.add(user)
+                if not is_admin:
+                    profile = ConsultantProfile(
+                        user_id=user.id,
+                        primary_skill="Full Stack & Cloud Architecture",
+                        experience_years=5,
+                        bench_start_date=datetime.now().date(),
+                        current_status="available"
+                    )
+                    session.add(profile)
+                session.commit()
+                logger.info(f"Auto-provisioned demo user: {user.email}")
             
             if not user:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
